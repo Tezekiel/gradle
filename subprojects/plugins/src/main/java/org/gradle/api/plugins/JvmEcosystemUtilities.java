@@ -26,7 +26,9 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.internal.HasInternalProtocol;
 
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This class exposes a number of utilities which can be used by plugin authors
@@ -38,13 +40,15 @@ import java.util.List;
 @Incubating
 @NonNullApi
 @HasInternalProtocol
+@SuppressWarnings("UnusedReturnValue")
 public interface JvmEcosystemUtilities {
     /**
      * Adds an API configuration to a source set, so that API dependencies
      * can be declared.
      * @param sourceSet the source set to add an API for
+     * @return the created API configuration
      */
-    void addApiToSourceSet(SourceSet sourceSet);
+    Configuration addApiToSourceSet(SourceSet sourceSet);
 
     /**
      * Registers a source set as contributing classes and exposes them as a variant.
@@ -81,16 +85,18 @@ public interface JvmEcosystemUtilities {
     /**
      * Creates an outgoing configuration and configures it with reasonable defaults.
      * @param name the name of the outgoing configurtion
-     * @param builder the configuration builder, used to describe what the configuration is used for
+     * @param configuration the configuration builder, used to describe what the configuration is used for
      * @return an outgoing (consumable) configuration
      */
-    Configuration createOutgoingElements(String name, Action<? super OutgoingElementsBuilder> builder);
+    Configuration createOutgoingElements(String name, Action<? super OutgoingElementsBuilder> configuration);
 
-    @SuppressWarnings("UnusedReturnValue")
+    JavaComponentSummary createJavaComponent(String name, Action<? super JavaComponentBuilder> configuration);
+
     interface JvmEcosystemAttributesDetails {
         JvmEcosystemAttributesDetails library();
         JvmEcosystemAttributesDetails platform();
         JvmEcosystemAttributesDetails enforcedPlatform();
+        JvmEcosystemAttributesDetails documentation(String docsType);
 
         JvmEcosystemAttributesDetails providingApi();
         JvmEcosystemAttributesDetails providingRuntime();
@@ -102,11 +108,10 @@ public interface JvmEcosystemUtilities {
         JvmEcosystemAttributesDetails asJar();
     }
 
-    @SuppressWarnings("UnusedReturnValue")
     interface OutgoingElementsBuilder {
         OutgoingElementsBuilder withDescription(String description);
-        OutgoingElementsBuilder forApi();
-        OutgoingElementsBuilder forRuntime();
+        OutgoingElementsBuilder providesApi();
+        OutgoingElementsBuilder providesRuntime();
         OutgoingElementsBuilder extendsFrom(Configuration... parentConfigurations);
         OutgoingElementsBuilder fromSourceSet(SourceSet sourceSet);
         OutgoingElementsBuilder addArtifact(TaskProvider<Task> producer);
@@ -115,4 +120,22 @@ public interface JvmEcosystemUtilities {
         OutgoingElementsBuilder withClassDirectoryVariant();
     }
 
+    interface JavaComponentBuilder {
+        JavaComponentBuilder usingSourceSet(SourceSet sourceSet);
+        JavaComponentBuilder withDisplayName(String displayName);
+        JavaComponentBuilder exposesApi();
+        JavaComponentBuilder withJar();
+        JavaComponentBuilder withJavadocJar();
+        JavaComponentBuilder withSourcesJar();
+        JavaComponentBuilder capability(Capability capability);
+        JavaComponentBuilder capability(String group, String name, @Nullable String version);
+        JavaComponentBuilder published();
+    }
+
+    interface JavaComponentSummary {
+        Optional<Configuration> getApiConfiguration();
+        Optional<Configuration> getApiElementsConfiguration();
+        Configuration getImplementationConfiguration();
+        Configuration getRuntimeElementsConfiguration();
+    }
 }
